@@ -5,13 +5,43 @@ import requests
 from bs4 import BeautifulSoup
 import altair as alt
 import pandas as pd
+import json
+import os
 
-# Initialize session state for hackathons and team members
+# Path to the JSON file to store hackathon data
+HACKATHON_DATA_FILE = "hackathons.json"
+TEAM_MEMBER_DATA_FILE = "team_members.json"
+
+# Function to save hackathon data to a JSON file
+def save_hackathons(data):
+    with open(HACKATHON_DATA_FILE, 'w') as f:
+        json.dump(data, f)
+
+# Function to load hackathon data from a JSON file
+def load_hackathons():
+    if os.path.exists(HACKATHON_DATA_FILE):
+        with open(HACKATHON_DATA_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+# Function to save team member data to a JSON file
+def save_team_members(data):
+    with open(TEAM_MEMBER_DATA_FILE, 'w') as f:
+        json.dump(data, f)
+
+# Function to load team member data from a JSON file
+def load_team_members():
+    if os.path.exists(TEAM_MEMBER_DATA_FILE):
+        with open(TEAM_MEMBER_DATA_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+# Load hackathon and team member data into session state
 if 'hackathons' not in st.session_state:
-    st.session_state.hackathons = []
+    st.session_state.hackathons = load_hackathons()
 
 if 'team_members' not in st.session_state:
-    st.session_state.team_members = []
+    st.session_state.team_members = load_team_members()
 
 # Function to add a new hackathon
 def add_hackathon(name, prize, location, deadline, website):
@@ -26,15 +56,18 @@ def add_hackathon(name, prize, location, deadline, website):
         'attachments': []
     }
     st.session_state.hackathons.append(hackathon)
+    save_hackathons(st.session_state.hackathons)
 
 # Function to update progress
 def update_progress(index):
     attachments_count = len(st.session_state.hackathons[index]['attachments'])
     st.session_state.hackathons[index]['progress'] = attachments_count * 25
+    save_hackathons(st.session_state.hackathons)
 
 # Function to delete a hackathon
 def delete_hackathon(index):
     del st.session_state.hackathons[index]
+    save_hackathons(st.session_state.hackathons)
 
 # Function to add an attachment to a hackathon
 def add_attachment(hackathon_index, attachment_name, attachment_file):
@@ -53,6 +86,7 @@ def add_team_member(name, role, email):
         'email': email
     }
     st.session_state.team_members.append(team_member)
+    save_team_members(st.session_state.team_members)
 
 # Function to scrape an image from the hackathon website
 def scrape_image(url):
@@ -122,12 +156,16 @@ with col1:
                         display: flex;
                         flex-wrap: wrap;
                         gap: 20px;
-                        font-size: 30px;
+                        font-size: 20px;
                     }}
                     .hackathon-details > div {{
                         flex: 1 1 300px;
                     }}
                     .bold-text {{
+                        font-weight: bold;
+                    }}
+                    .large-text {{
+                        font-size: 24px;
                         font-weight: bold;
                     }}
                     </style>
@@ -140,7 +178,7 @@ with col1:
                         <div><strong>Prize:</strong> {hackathon['prize']}</div>
                         <div><strong>Deadline:</strong> {hackathon['deadline'].strftime('%Y-%m-%d')}</div>
                         <div><strong>Website:</strong> <a href="{hackathon['website']}" target="_blank">Link</a></div>
-                        <div><strong>Days left:</strong> {(hackathon['deadline'] - datetime.today().date()).days} days</div>
+                        <div class="large-text"><strong>Days left:</strong> {(hackathon['deadline'] - datetime.today().date()).days} days</div>
                     </div>
                     """, 
                     unsafe_allow_html=True
