@@ -8,32 +8,57 @@ import pandas as pd
 import json
 import os
 
-# Path to the JSON file to store hackathon data
+# Path to the JSON files to store hackathon and team member data
 HACKATHON_DATA_FILE = "hackathons.json"
 TEAM_MEMBER_DATA_FILE = "team_members.json"
+ATTACHMENT_FOLDER = "attachments"
+
+# Ensure the attachment folder exists
+if not os.path.exists(ATTACHMENT_FOLDER):
+    os.makedirs(ATTACHMENT_FOLDER)
 
 # Function to save hackathon data to a JSON file
 def save_hackathons(data):
-    with open(HACKATHON_DATA_FILE, 'w') as f:
-        json.dump(data, f)
+    try:
+        with open(HACKATHON_DATA_FILE, 'w') as f:
+            json.dump(data, f)
+    except Exception as e:
+        st.error(f"Error saving hackathon data: {e}")
 
 # Function to load hackathon data from a JSON file
 def load_hackathons():
     if os.path.exists(HACKATHON_DATA_FILE):
-        with open(HACKATHON_DATA_FILE, 'r') as f:
-            return json.load(f)
+        try:
+            with open(HACKATHON_DATA_FILE, 'r') as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            st.error("Error loading hackathon data: JSON decode error.")
+            return []
+        except Exception as e:
+            st.error(f"Error loading hackathon data: {e}")
+            return []
     return []
 
 # Function to save team member data to a JSON file
 def save_team_members(data):
-    with open(TEAM_MEMBER_DATA_FILE, 'w') as f:
-        json.dump(data, f)
+    try:
+        with open(TEAM_MEMBER_DATA_FILE, 'w') as f:
+            json.dump(data, f)
+    except Exception as e:
+        st.error(f"Error saving team member data: {e}")
 
 # Function to load team member data from a JSON file
 def load_team_members():
     if os.path.exists(TEAM_MEMBER_DATA_FILE):
-        with open(TEAM_MEMBER_DATA_FILE, 'r') as f:
-            return json.load(f)
+        try:
+            with open(TEAM_MEMBER_DATA_FILE, 'r') as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            st.error("Error loading team member data: JSON decode error.")
+            return []
+        except Exception as e:
+            st.error(f"Error loading team member data: {e}")
+            return []
     return []
 
 # Load hackathon and team member data into session state
@@ -45,48 +70,66 @@ if 'team_members' not in st.session_state:
 
 # Function to add a new hackathon
 def add_hackathon(name, prize, location, deadline, website):
-    hackathon = {
-        'name': name,
-        'prize': prize,
-        'location': location,
-        'deadline': deadline,
-        'progress': 0,  # Initial progress is 0%
-        'website': website,
-        'image_url': scrape_image(website),
-        'attachments': []
-    }
-    st.session_state.hackathons.append(hackathon)
-    save_hackathons(st.session_state.hackathons)
+    try:
+        hackathon = {
+            'name': name,
+            'prize': prize,
+            'location': location,
+            'deadline': deadline,
+            'progress': 0,  # Initial progress is 0%
+            'website': website,
+            'image_url': scrape_image(website),
+            'attachments': []
+        }
+        st.session_state.hackathons.append(hackathon)
+        save_hackathons(st.session_state.hackathons)
+    except Exception as e:
+        st.error(f"Error adding hackathon: {e}")
 
 # Function to update progress
 def update_progress(index):
-    attachments_count = len(st.session_state.hackathons[index]['attachments'])
-    st.session_state.hackathons[index]['progress'] = attachments_count * 25
-    save_hackathons(st.session_state.hackathons)
+    try:
+        attachments_count = len(st.session_state.hackathons[index]['attachments'])
+        st.session_state.hackathons[index]['progress'] = attachments_count * 25
+        save_hackathons(st.session_state.hackathons)
+    except Exception as e:
+        st.error(f"Error updating progress: {e}")
 
 # Function to delete a hackathon
 def delete_hackathon(index):
-    del st.session_state.hackathons[index]
-    save_hackathons(st.session_state.hackathons)
+    try:
+        del st.session_state.hackathons[index]
+        save_hackathons(st.session_state.hackathons)
+    except Exception as e:
+        st.error(f"Error deleting hackathon: {e}")
 
 # Function to add an attachment to a hackathon
 def add_attachment(hackathon_index, attachment_name, attachment_file):
-    attachment = {
-        'name': attachment_name,
-        'file': attachment_file
-    }
-    st.session_state.hackathons[hackathon_index]['attachments'].append(attachment)
-    update_progress(hackathon_index)
+    try:
+        file_path = os.path.join(ATTACHMENT_FOLDER, attachment_file.name)
+        with open(file_path, 'wb') as f:
+            f.write(attachment_file.getbuffer())
+        attachment = {
+            'name': attachment_name,
+            'file_path': file_path
+        }
+        st.session_state.hackathons[hackathon_index]['attachments'].append(attachment)
+        update_progress(hackathon_index)
+    except Exception as e:
+        st.error(f"Error adding attachment: {e}")
 
 # Function to add a new team member
 def add_team_member(name, role, email):
-    team_member = {
-        'name': name,
-        'role': role,
-        'email': email
-    }
-    st.session_state.team_members.append(team_member)
-    save_team_members(st.session_state.team_members)
+    try:
+        team_member = {
+            'name': name,
+            'role': role,
+            'email': email
+        }
+        st.session_state.team_members.append(team_member)
+        save_team_members(st.session_state.team_members)
+    except Exception as e:
+        st.error(f"Error adding team member: {e}")
 
 # Function to scrape an image from the hackathon website
 def scrape_image(url):
@@ -97,7 +140,7 @@ def scrape_image(url):
         if img:
             return img['src']
     except Exception as e:
-        print(f"Error scraping image: {e}")
+        st.error(f"Error scraping image: {e}")
     return None
 
 # Streamlit app
@@ -202,7 +245,8 @@ with col1:
                 if hackathon['attachments']:
                     for attachment in hackathon['attachments']:
                         st.write(f"- **{attachment['name']}**")
-                        st.download_button("Download", attachment['file'].getvalue(), file_name=attachment['name'])
+                        with open(attachment['file_path'], 'rb') as f:
+                            st.download_button("Download", f, file_name=attachment['name'])
 
                 # Delete button
                 if st.button(f"Delete {hackathon['name']}", key=f"delete_{i}"):
