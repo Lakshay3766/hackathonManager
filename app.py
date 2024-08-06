@@ -232,6 +232,10 @@ with col1:
                     """, 
                     unsafe_allow_html=True
                 )
+                # Ensure deadline is a date object
+                if isinstance(hackathon['deadline'], str):
+                    hackathon['deadline'] = datetime.strptime(hackathon['deadline'], '%Y/%m/%d').date()
+                
                 days_left = (hackathon['deadline'] - date.today()).days
                 st.markdown(
                     f"""
@@ -292,6 +296,8 @@ with col2:
     if st.session_state.hackathons:
         hackathons_sorted = sorted(st.session_state.hackathons, key=lambda x: x['deadline'])
         for hackathon in hackathons_sorted:
+            if isinstance(hackathon['deadline'], str):
+                hackathon['deadline'] = datetime.strptime(hackathon['deadline'], '%Y/%m/%d').date()
             days_left = (hackathon['deadline'] - date.today()).days
             if days_left <= 7 or hackathon['progress'] < 50:
                 st.warning(f"{hackathon['name']} ({hackathon['location']}) - {days_left} days left, Progress: {hackathon['progress']}%")
