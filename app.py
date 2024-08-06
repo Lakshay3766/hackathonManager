@@ -1,5 +1,5 @@
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, date
 import webbrowser
 import requests
 from bs4 import BeautifulSoup
@@ -17,11 +17,25 @@ ATTACHMENT_FOLDER = "attachments"
 if not os.path.exists(ATTACHMENT_FOLDER):
     os.makedirs(ATTACHMENT_FOLDER)
 
+# Helper function to serialize data before saving to JSON
+def serialize_data(data):
+    for hackathon in data:
+        if isinstance(hackathon['deadline'], date):
+            hackathon['deadline'] = hackathon['deadline'].strftime('%Y-%m-%d')
+    return data
+
+# Helper function to deserialize data after loading from JSON
+def deserialize_data(data):
+    for hackathon in data:
+        if isinstance(hackathon['deadline'], str):
+            hackathon['deadline'] = datetime.strptime(hackathon['deadline'], '%Y-%m-%d').date()
+    return data
+
 # Function to save hackathon data to a JSON file
 def save_hackathons(data):
     try:
         with open(HACKATHON_DATA_FILE, 'w') as f:
-            json.dump(data, f)
+            json.dump(serialize_data(data), f)
     except Exception as e:
         st.error(f"Error saving hackathon data: {e}")
 
@@ -30,9 +44,11 @@ def load_hackathons():
     if os.path.exists(HACKATHON_DATA_FILE):
         try:
             with open(HACKATHON_DATA_FILE, 'r') as f:
-                return json.load(f)
+                data = json.load(f)
+                return deserialize_data(data)
         except json.JSONDecodeError:
-            st.error("Error loading hackathon data: JSON decode error.")
+            st.error("Error loading hackathon data: JSON decode error. Resetting to empty list.")
+            save_hackathons([])
             return []
         except Exception as e:
             st.error(f"Error loading hackathon data: {e}")
@@ -54,7 +70,8 @@ def load_team_members():
             with open(TEAM_MEMBER_DATA_FILE, 'r') as f:
                 return json.load(f)
         except json.JSONDecodeError:
-            st.error("Error loading team member data: JSON decode error.")
+            st.error("Error loading team member data: JSON decode error. Resetting to empty list.")
+            save_team_members([])
             return []
         except Exception as e:
             st.error(f"Error loading team member data: {e}")
