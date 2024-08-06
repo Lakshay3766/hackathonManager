@@ -1,0 +1,236 @@
+import streamlit as st
+from datetime import datetime
+import webbrowser
+import requests
+from bs4 import BeautifulSoup
+import altair as alt
+import pandas as pd
+
+# Initialize session state for hackathons and team members
+if 'hackathons' not in st.session_state:
+    st.session_state.hackathons = []
+
+if 'team_members' not in st.session_state:
+    st.session_state.team_members = []
+
+# Function to add a new hackathon
+def add_hackathon(name, prize, location, deadline, website):
+    hackathon = {
+        'name': name,
+        'prize': prize,
+        'location': location,
+        'deadline': deadline,
+        'progress': 0,  # Initial progress is 0%
+        'website': website,
+        'image_url': scrape_image(website),
+        'attachments': []
+    }
+    st.session_state.hackathons.append(hackathon)
+
+# Function to update progress
+def update_progress(index):
+    attachments_count = len(st.session_state.hackathons[index]['attachments'])
+    st.session_state.hackathons[index]['progress'] = attachments_count * 25
+
+# Function to delete a hackathon
+def delete_hackathon(index):
+    del st.session_state.hackathons[index]
+
+# Function to add an attachment to a hackathon
+def add_attachment(hackathon_index, attachment_name, attachment_file):
+    attachment = {
+        'name': attachment_name,
+        'file': attachment_file
+    }
+    st.session_state.hackathons[hackathon_index]['attachments'].append(attachment)
+    update_progress(hackathon_index)
+
+# Function to add a new team member
+def add_team_member(name, role, email):
+    team_member = {
+        'name': name,
+        'role': role,
+        'email': email
+    }
+    st.session_state.team_members.append(team_member)
+
+# Function to scrape an image from the hackathon website
+def scrape_image(url):
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        img = soup.find('img')
+        if img:
+            return img['src']
+    except Exception as e:
+        print(f"Error scraping image: {e}")
+    return None
+
+# Streamlit app
+st.set_page_config(layout="wide")  # Set layout to wide
+
+st.title("Hackathon Management Tool")
+
+# Display logo
+st.image('download.png', width=100)
+
+# Sidebar for adding new hackathons and team members
+st.sidebar.header("Add New Hackathon")
+with st.sidebar.form("Add Hackathon", clear_on_submit=True):
+    name = st.text_input("Hackathon Name")
+    prize = st.text_input("Prize")
+    location = st.text_input("Location")
+    deadline = st.date_input("Deadline")
+    website = st.text_input("Website URL")
+    submit = st.form_submit_button("Add Hackathon")
+
+    if submit:
+        add_hackathon(name, prize, location, deadline, website)
+        st.sidebar.success(f"Hackathon '{name}' added successfully!")
+
+st.sidebar.markdown("---")
+
+st.sidebar.header("Add New Team Member")
+with st.sidebar.form("Add Team Member", clear_on_submit=True):
+    member_name = st.text_input("Member Name")
+    member_role = st.text_input("Role")
+    member_email = st.text_input("Email")
+    submit_member = st.form_submit_button("Add Team Member")
+
+    if submit_member:
+        add_team_member(member_name, member_role, member_email)
+        st.sidebar.success(f"Team member '{member_name}' added successfully!")
+
+st.markdown("---")  # Divider
+
+# Main content layout
+col1, col2 = st.columns([3, 1])
+
+# Display existing hackathons in col1
+with col1:
+    st.header("Hackathon List")
+    if st.session_state.hackathons:
+        selected_hackathon = st.selectbox("Select a hackathon to view details:", options=[h['name'] for h in st.session_state.hackathons])
+
+        for i, hackathon in enumerate(st.session_state.hackathons):
+            if hackathon['name'] == selected_hackathon:
+                st.subheader(f"{hackathon['name']} ({hackathon['location']})")
+                st.markdown(
+                    f"""
+                    <style>
+                    .hackathon-details {{
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 20px;
+                        font-size: 30px;
+                    }}
+                    .hackathon-details > div {{
+                        flex: 1 1 300px;
+                    }}
+                    .bold-text {{
+                        font-weight: bold;
+                    }}
+                    </style>
+                    """, 
+                    unsafe_allow_html=True
+                )
+                st.markdown(
+                    f"""
+                    <div class="hackathon-details">
+                        <div><strong>Prize:</strong> {hackathon['prize']}</div>
+                        <div><strong>Deadline:</strong> {hackathon['deadline'].strftime('%Y-%m-%d')}</div>
+                        <div><strong>Website:</strong> <a href="{hackathon['website']}" target="_blank">Link</a></div>
+                        <div><strong>Days left:</strong> {(hackathon['deadline'] - datetime.today().date()).days} days</div>
+                    </div>
+                    """, 
+                    unsafe_allow_html=True
+                )
+                if hackathon['image_url']:
+                    st.image(hackathon['image_url'], use_column_width=True)
+
+                st.markdown(f"**Progress:** {hackathon['progress']}%")
+
+                # Attachments
+                st.write("**Attachments:**")
+                attachment_name = st.text_input("Attachment Name", key=f"attachment_name_{i}")
+                attachment_file = st.file_uploader("Choose a file", key=f"attachment_file_{i}")
+                if st.button("Add Attachment", key=f"add_attachment_{i}"):
+                    if attachment_name and attachment_file:
+                        add_attachment(i, attachment_name, attachment_file)
+                        st.success(f"Attachment '{attachment_name}' added successfully!")
+                    else:
+                        st.error("Please provide both attachment name and file.")
+
+                if hackathon['attachments']:
+                    for attachment in hackathon['attachments']:
+                        st.write(f"- **{attachment['name']}**")
+                        st.download_button("Download", attachment['file'].getvalue(), file_name=attachment['name'])
+
+                # Delete button
+                if st.button(f"Delete {hackathon['name']}", key=f"delete_{i}"):
+                    delete_hackathon(i)
+                    st.experimental_rerun()
+    else:
+        st.write("No hackathons added yet.")
+
+    st.markdown("---")  # Divider
+
+    # Display team members
+    st.header("Team Members")
+    if st.session_state.team_members:
+        for member in st.session_state.team_members:
+            st.markdown(f"**<span style='font-size:20px'>Name:</span>** <span style='font-size:20px'>{member['name']}</span>", unsafe_allow_html=True)
+            st.markdown(f"**<span style='font-size:20px'>Role:</span>** <span style='font-size:20px'>{member['role']}</span>", unsafe_allow_html=True)
+            st.markdown(f"**<span style='font-size:20px'>Email:</span>** <span style='font-size:20px'>{member['email']}</span>", unsafe_allow_html=True)
+            st.markdown("---")
+    else:
+        st.write("No team members added yet.")
+
+# Analyzer section in col2
+with col2:
+    st.header("Analyzer")
+    if st.session_state.hackathons:
+        hackathons_sorted = sorted(st.session_state.hackathons, key=lambda x: x['deadline'])
+        for hackathon in hackathons_sorted:
+            days_left = (hackathon['deadline'] - datetime.today().date()).days
+            if days_left <= 7 or hackathon['progress'] < 50:
+                st.warning(f"{hackathon['name']} ({hackathon['location']}) - {days_left} days left, Progress: {hackathon['progress']}%")
+    else:
+        st.info("No upcoming deadlines or low progress hackathons.")
+
+    st.markdown("---")  # Divider
+
+    # Analysis section with bar chart
+    st.header("Hackathon Analysis")
+    if st.session_state.hackathons:
+        total_hackathons = len(st.session_state.hackathons)
+        completed_tasks = sum(
+            len(h['attachments']) == 4
+            for h in st.session_state.hackathons
+        )
+        avg_progress = sum(h['progress'] for h in st.session_state.hackathons) / total_hackathons
+        
+        st.write(f"**Total Hackathons:** {total_hackathons}")
+        st.write(f"**Completed Hackathons:** {completed_tasks}")
+        st.write(f"**Average Progress:** {avg_progress:.2f}%")
+        
+        # Create a DataFrame for the bar chart
+        hackathon_data = pd.DataFrame([
+            {'name': h['name'], 'progress': h['progress']}
+            for h in st.session_state.hackathons
+        ])
+
+        # Create and display the bar chart
+        chart = alt.Chart(hackathon_data).mark_bar().encode(
+            x='name',
+            y='progress',
+            color='name'
+        ).properties(
+            width=300,
+            height=300,
+            title='Hackathon Progress'
+        )
+
+        st.altair_chart(chart)
+    else:
+        st.info("No hackathons available for analysis.")
