@@ -236,7 +236,7 @@ with col1:
                     f"""
                     <div class="hackathon-details">
                         <div><strong>Prize:</strong> {hackathon['prize']}</div>
-                        <div><strong>Deadline:</strong> {hackathon['deadline'].strftime('%Y-%m-%d')}</div>
+                        <div><strong>Deadline:</strong> {hackathon['deadline']}</div>
                         <div><strong>Website:</strong> <a href="{hackathon['website']}" target="_blank">Link</a></div>
                         <div class="large-text"><strong>Days left:</strong> {(hackathon['deadline'] - datetime.today().date()).days} days</div>
                     </div>
