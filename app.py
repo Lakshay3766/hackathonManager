@@ -156,6 +156,7 @@ with st.sidebar.form("Add Hackathon", clear_on_submit=True):
         image_url = scrape_image(website)
         add_hackathon(name, prize, location, deadline, website, image_url)
         st.sidebar.success(f"Hackathon '{name}' added successfully!")
+        st.experimental_rerun()  # Reload the app to show the new hackathon
 
 st.sidebar.markdown("---")
 
@@ -169,6 +170,7 @@ with st.sidebar.form("Add Team Member", clear_on_submit=True):
     if submit_member:
         add_team_member(member_name, member_role, member_email)
         st.sidebar.success(f"Team member '{member_name}' added successfully!")
+        st.experimental_rerun()  # Reload the app to show the new team member
 
 st.markdown("---")  # Divider
 
@@ -251,7 +253,7 @@ with col1:
                 # Delete button
                 if st.button(f"Delete {hackathon[1]}", key=f"delete_{hackathon_id}"):
                     delete_hackathon(hackathon_id)
-                    st.experimental_rerun()
+                    st.experimental_rerun()  # Reload the app to reflect deletion
     else:
         st.write("No hackathons added yet.")
 
