@@ -21,14 +21,14 @@ if not os.path.exists(ATTACHMENT_FOLDER):
 def serialize_data(data):
     for hackathon in data:
         if isinstance(hackathon['deadline'], date):
-            hackathon['deadline'] = hackathon['deadline'].strftime('%Y-%m-%d')
+            hackathon['deadline'] = hackathon['deadline'].strftime('%Y/%m/%d')
     return data
 
 # Helper function to deserialize data after loading from JSON
 def deserialize_data(data):
     for hackathon in data:
         if isinstance(hackathon['deadline'], str):
-            hackathon['deadline'] = datetime.strptime(hackathon['deadline'], '%Y-%m-%d').date()
+            hackathon['deadline'] = datetime.strptime(hackathon['deadline'], '%Y/%m/%d').date()
     return data
 
 # Function to save hackathon data to a JSON file
@@ -232,13 +232,14 @@ with col1:
                     """, 
                     unsafe_allow_html=True
                 )
+                days_left = (hackathon['deadline'] - date.today()).days
                 st.markdown(
                     f"""
                     <div class="hackathon-details">
                         <div><strong>Prize:</strong> {hackathon['prize']}</div>
-                        <div><strong>Deadline:</strong> {hackathon['deadline']}</div>
+                        <div><strong>Deadline:</strong> {hackathon['deadline'].strftime('%Y/%m/%d')}</div>
                         <div><strong>Website:</strong> <a href="{hackathon['website']}" target="_blank">Link</a></div>
-                        <div class="large-text"><strong>Days left:</strong> {(hackathon['deadline'] - datetime.today().date()).days} days</div>
+                        <div class="large-text"><strong>Days left:</strong> {days_left} days</div>
                     </div>
                     """, 
                     unsafe_allow_html=True
@@ -291,7 +292,7 @@ with col2:
     if st.session_state.hackathons:
         hackathons_sorted = sorted(st.session_state.hackathons, key=lambda x: x['deadline'])
         for hackathon in hackathons_sorted:
-            days_left = (hackathon['deadline'] - datetime.today().date()).days
+            days_left = (hackathon['deadline'] - date.today()).days
             if days_left <= 7 or hackathon['progress'] < 50:
                 st.warning(f"{hackathon['name']} ({hackathon['location']}) - {days_left} days left, Progress: {hackathon['progress']}%")
     else:
