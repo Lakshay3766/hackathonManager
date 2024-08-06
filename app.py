@@ -156,7 +156,8 @@ with st.sidebar.form("Add Hackathon", clear_on_submit=True):
         image_url = scrape_image(website)
         add_hackathon(name, prize, location, deadline, website, image_url)
         st.sidebar.success(f"Hackathon '{name}' added successfully!")
-        st.experimental_rerun()  # Reload the app to show the new hackathon
+        # Rerun the app by resetting the session state
+        st.session_state['last_added'] = name
 
 st.sidebar.markdown("---")
 
@@ -170,7 +171,8 @@ with st.sidebar.form("Add Team Member", clear_on_submit=True):
     if submit_member:
         add_team_member(member_name, member_role, member_email)
         st.sidebar.success(f"Team member '{member_name}' added successfully!")
-        st.experimental_rerun()  # Reload the app to show the new team member
+        # Rerun the app by resetting the session state
+        st.session_state['last_added_member'] = member_name
 
 st.markdown("---")  # Divider
 
@@ -240,8 +242,8 @@ with col1:
                         add_attachment(hackathon_id, attachment_name, file_path)
                         update_progress(hackathon_id)
                         st.success(f"Attachment '{attachment_name}' added successfully!")
-                    else:
-                        st.error("Please provide both attachment name and file.")
+                        # Rerun the app by resetting the session state
+                        st.session_state['last_attachment'] = attachment_name
 
                 attachments = get_attachments(hackathon_id)
                 if attachments:
@@ -253,7 +255,10 @@ with col1:
                 # Delete button
                 if st.button(f"Delete {hackathon[1]}", key=f"delete_{hackathon_id}"):
                     delete_hackathon(hackathon_id)
-                    st.experimental_rerun()  # Reload the app to reflect deletion
+                    st.success(f"Hackathon '{hackathon[1]}' deleted successfully!")
+                    # Rerun the app by resetting the session state
+                    st.session_state['last_deleted'] = hackathon[1]
+                    st.experimental_rerun()
     else:
         st.write("No hackathons added yet.")
 
