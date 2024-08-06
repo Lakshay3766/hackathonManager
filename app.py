@@ -27,8 +27,7 @@ def init_db():
                 location TEXT,
                 deadline DATE,
                 progress INTEGER,
-                website TEXT,
-                image_url TEXT
+                website TEXT
             )
         ''')
         c.execute('''
@@ -54,13 +53,13 @@ def init_db():
 init_db()
 
 # Function to add a new hackathon
-def add_hackathon(name, prize, location, deadline, website, image_url):
+def add_hackathon(name, prize, location, deadline, website):
     with sqlite3.connect(DB_FILE) as conn:
         c = conn.cursor()
         c.execute('''
-            INSERT INTO hackathons (name, prize, location, deadline, progress, website, image_url)
-            VALUES (?, ?, ?, ?, 0, ?, ?)
-        ''', (name, prize, location, deadline, website, image_url))
+            INSERT INTO hackathons (name, prize, location, deadline, progress, website)
+            VALUES (?, ?, ?, ?, 0, ?)
+        ''', (name, prize, location, deadline, website))
         conn.commit()
 
 # Function to get all hackathons
@@ -122,18 +121,6 @@ def get_team_members():
         c.execute('SELECT * FROM team_members')
         return c.fetchall()
 
-# Function to scrape an image from the hackathon website
-def scrape_image(url):
-    try:
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        img = soup.find('img')
-        if img:
-            return img['src']
-    except Exception as e:
-        st.error(f"Error scraping image: {e}")
-    return None
-
 # Streamlit app
 st.set_page_config(layout="wide")  # Set layout to wide
 
@@ -153,8 +140,7 @@ with st.sidebar.form("Add Hackathon", clear_on_submit=True):
     submit = st.form_submit_button("Add Hackathon")
 
     if submit:
-        image_url = scrape_image(website)
-        add_hackathon(name, prize, location, deadline, website, image_url)
+        add_hackathon(name, prize, location, deadline, website)
         st.sidebar.success(f"Hackathon '{name}' added successfully!")
         # Rerun the app by resetting the session state
         st.session_state['last_added'] = name
@@ -219,14 +205,12 @@ with col1:
                     <div class="hackathon-details">
                         <div><strong>Prize:</strong> {hackathon[2]}</div>
                         <div><strong>Deadline:</strong> {hackathon[4]}</div>
-                        <div><strong>Website:</strong> <a href="{hackathon[6]}" target="_blank">Link</a></div>
+                        <div><strong>Website:</strong> <a href="{hackathon[5]}" target="_blank">Link</a></div>
                         <div class="large-text"><strong>Days left:</strong> {days_left} days</div>
                     </div>
                     """, 
                     unsafe_allow_html=True
                 )
-                if hackathon[7]:
-                    st.image(hackathon[7], use_column_width=True)
 
                 st.markdown(f"**Progress:** {hackathon[5]}%")
 
